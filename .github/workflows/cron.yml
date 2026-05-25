@@ -1,0 +1,74 @@
+name: JARVIS Cron Jobs
+
+on:
+  schedule:
+    # Zeiten in UTC — Europe/Vienna ist UTC+2 (Sommer)
+    - cron: '30 4 * * *'   # 06:30 CEST → Metrics berechnen
+    - cron: '0 5 * * *'    # 07:00 CEST → Morning Briefing
+    - cron: '0 5 * * 1'    # 07:00 CEST Montag → Weekly Plan
+    - cron: '0 19 * * *'   # 21:00 CEST → Evening Recap
+    - cron: '0 18 * * 0'   # 20:00 CEST Sonntag → Weekly Review
+  workflow_dispatch:
+    inputs:
+      job:
+        description: 'Which cron job to run'
+        required: true
+        type: choice
+        options:
+          - metrics
+          - morning
+          - evening
+          - weekly
+          - plan-generation
+
+jobs:
+  metrics:
+    if: github.event.schedule == '30 4 * * *' || github.event.inputs.job == 'metrics'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger metrics calculation
+        run: |
+          curl -X POST "${{ secrets.APP_URL }}/api/cron/metrics" \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            -H "Content-Type: application/json"
+
+  morning:
+    if: github.event.schedule == '0 5 * * *' || github.event.inputs.job == 'morning'
+    runs-on: ubuntu-latest
+    needs: [metrics]
+    steps:
+      - name: Trigger morning briefing
+        run: |
+          curl -X POST "${{ secrets.APP_URL }}/api/cron/morning" \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            -H "Content-Type: application/json"
+
+  plan-generation:
+    if: github.event.schedule == '0 5 * * 1' || github.event.inputs.job == 'plan-generation'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger weekly plan generation
+        run: |
+          curl -X POST "${{ secrets.APP_URL }}/api/cron/plan-generation" \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            -H "Content-Type: application/json"
+
+  evening:
+    if: github.event.schedule == '0 19 * * *' || github.event.inputs.job == 'evening'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger evening recap
+        run: |
+          curl -X POST "${{ secrets.APP_URL }}/api/cron/evening" \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            -H "Content-Type: application/json"
+
+  weekly:
+    if: github.event.schedule == '0 18 * * 0' || github.event.inputs.job == 'weekly'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger weekly review
+        run: |
+          curl -X POST "${{ secrets.APP_URL }}/api/cron/weekly" \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            -H "Content-Type: application/json"
