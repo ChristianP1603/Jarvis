@@ -35,7 +35,6 @@ jobs:
   morning:
     if: github.event.schedule == '0 5 * * *' || github.event.inputs.job == 'morning'
     runs-on: ubuntu-latest
-    needs: [metrics]
     steps:
       - name: Trigger morning briefing
         run: |
