@@ -3,7 +3,8 @@
 import { useEffect, useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { JOURNAL_FACTORS, type JournalFactor } from '@/lib/journal/factors'
+import { JOURNAL_FACTORS } from '@/lib/journal/factors'
+import type { CorrelationInsight } from '@/lib/journal/correlations'
 
 const CATEGORIES = [
   { key: 'substances', label: 'Substanzen' },
@@ -18,6 +19,7 @@ export default function JournalPage() {
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
   const [loaded, setLoaded] = useState(false)
+  const [insights, setInsights] = useState<CorrelationInsight[]>([])
 
   const today = new Date().toISOString().split('T')[0]
 
@@ -33,7 +35,15 @@ export default function JournalPage() {
       }
       setLoaded(true)
     }
+    async function loadInsights() {
+      const res = await fetch('/api/journal/correlations')
+      if (res.ok) {
+        const data = await res.json()
+        setInsights(data.insights || [])
+      }
+    }
     load()
+    loadInsights()
   }, [today])
 
   const toggle = (id: string) => {
@@ -112,6 +122,27 @@ export default function JournalPage() {
           />
         </CardContent>
       </Card>
+
+      {/* Insights */}
+      {insights.length > 0 && (
+        <Card className="border-zinc-800 bg-zinc-900">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm text-zinc-400 font-medium">📊 Erkenntnisse</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            {insights.map((insight, i) => (
+              <div key={i} className={`text-xs px-3 py-2 rounded-lg ${
+                insight.type === 'positive' ? 'bg-emerald-500/10 text-emerald-400' :
+                insight.type === 'negative' ? 'bg-red-500/10 text-red-400' :
+                'bg-zinc-800 text-zinc-400'
+              }`}>
+                {insight.message}
+              </div>
+            ))}
+            <p className="text-[10px] text-zinc-600 pt-1">Basierend auf deinen letzten 90 Tagen</p>
+          </CardContent>
+        </Card>
+      )}
 
       <Button onClick={save} disabled={saving} className="w-full bg-white text-black hover:bg-zinc-200">
         {saving ? 'Speichern...' : saved ? 'Gespeichert' : 'Logbuch speichern'}
