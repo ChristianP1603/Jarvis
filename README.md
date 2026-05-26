@@ -1,36 +1,91 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# JARVIS
 
-## Getting Started
+Self-hosted personal operating system for training, nutrition, sleep and productivity. Built because every coaching app out there either costs 30€/month or treats strength and endurance like separate planets.
 
-First, run the development server:
+The core idea: a coaching engine that actually thinks like an experienced endurance/fitness coach — periodized plans, cross-training intelligence (yes, bike sessions make you a better runner), automatic deloads, and daily adjustments based on recovery.
+
+## What it does
+
+**Training** — Weekly plans generated from your active goal and training profile. Supports running, strength, hybrid and ironman profiles. The engine handles periodization (Base → Build → Peak → Taper), interference rules (no hard endurance after leg day), and cross-training logic. Recovery overlay adjusts or replaces sessions based on how you're actually feeling.
+
+**Recovery & Sleep** — Pulls data from Apple Health via iOS Shortcuts. Calculates sleep score (duration, efficiency, deep/REM, consistency) and recovery score (HRV baseline deviation, resting HR, sleep quality, journal factors). Red/yellow/green system that directly influences tomorrow's training.
+
+**Nutrition** — Macro tracking via predefined meal templates + manual entry. Auto-calculates targets based on BMR, activity level, and today's training. Water tracking.
+
+**Tasks** — Simple task manager with priorities, due dates, projects. Views for today, inbox, upcoming, completed.
+
+**Journal** — Daily factor logging (alcohol, stress, late caffeine, meditation, etc.). Correlation engine analyzes 90 days of data and surfaces patterns like "alcohol drops your recovery by ~12 points".
+
+**Analytics** — CTL/ATL/TSB fitness curves, training volume, weight trend with rolling average, recovery and sleep charts.
+
+**Telegram Bot** — Morning briefing (recovery, today's plan, tasks), evening recap, weekly summary. Commands for quick task entry, weight logging, status checks.
+
+## Stack
+
+- Next.js 14 (App Router) + TypeScript
+- Supabase (Postgres, Auth, RLS)
+- Tailwind CSS + shadcn/ui
+- Recharts
+- Telegram Bot API
+- GitHub Actions for cron jobs
+- Vercel (Hobby Tier)
+
+Runs at $0/month.
+
+## Setup
 
 ```bash
+git clone https://github.com/ChristianP1603/Jarvis.git
+cd Jarvis
+npm install
+cp .env.local.example .env.local
+# fill in your Supabase + Telegram credentials
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### Supabase
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Create a project, then run the migration:
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```bash
+npx supabase db push
+```
 
-## Learn More
+### Telegram
 
-To learn more about Next.js, take a look at the following resources:
+1. Create a bot via `@BotFather`
+2. Get your chat ID (send a message to the bot, then check `https://api.telegram.org/bot<TOKEN>/getUpdates`)
+3. Add `TELEGRAM_BOT_TOKEN` and `TELEGRAM_CHAT_ID` to env
+4. Register the webhook: `POST /api/telegram/setup` with `Authorization: Bearer <CRON_SECRET>`
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+### GitHub Actions
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Add these secrets to the repo:
+- `APP_URL` — your deployed Vercel URL
+- `CRON_SECRET` — same as in `.env.local`
 
-## Deploy on Vercel
+### Apple Health
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+Set up an iOS Shortcut that runs on a schedule and POSTs to `/api/health/sync` with your `HEALTH_SYNC_API_KEY`. Sends activities, sleep data, and weight.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Project structure
+
+```
+app/
+  (dashboard)/     — all authenticated pages
+  api/             — serverless API routes
+lib/
+  coaching/        — the engine (profiles, plan generation, metrics)
+  sleep/           — sleep + recovery score calculation
+  nutrition/       — macro target calculation
+  journal/         — factor definitions + correlation analysis
+  telegram/        — bot client, commands, message formatters
+  supabase/        — client/server/admin wrappers
+docs/              — architecture + coaching engine spec
+```
+
+Details in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) and [docs/COACHING_ENGINE.md](docs/COACHING_ENGINE.md).
+
+## License
+
+Private project — not open source.
