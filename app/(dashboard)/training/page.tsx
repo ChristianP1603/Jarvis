@@ -5,6 +5,7 @@ import { format, startOfWeek, addDays } from 'date-fns'
 import { de } from 'date-fns/locale'
 import Link from 'next/link'
 import { GeneratePlanButton } from './generate-button'
+import { WorkoutActions } from './workout-actions'
 
 const ZONE_COLORS: Record<string, string> = {
   Z1: 'bg-blue-500/20 text-blue-300',
@@ -158,6 +159,13 @@ export default async function TrainingPage() {
                             <span className="text-[9px] bg-purple-500/20 text-purple-400 px-1.5 py-0.5 rounded font-medium">ADJ</span>
                           )}
                         </div>
+                        {(w.type as string) !== 'rest' && (
+                          <WorkoutActions
+                            workoutId={w.id as string}
+                            completed={w.completed as boolean}
+                            skipped={w.skipped as boolean}
+                          />
+                        )}
                       </div>
                     )) : (
                       <p className="text-sm text-zinc-600">—</p>
