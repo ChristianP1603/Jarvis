@@ -27,7 +27,9 @@ CREATE TABLE user_settings (
   long_session_day        TEXT DEFAULT 'SA',
   preferred_rest_day      TEXT DEFAULT 'SU',
   nutrition_goal          TEXT DEFAULT 'maintain',
-  notification_prefs      JSONB DEFAULT '{"morning": true, "evening": true, "weekly": true, "alerts": true}'
+  notification_prefs      JSONB DEFAULT '{"morning": true, "evening": true, "weekly": true, "alerts": true}',
+  target_calories         INT DEFAULT 2500,
+  target_protein          INT DEFAULT 150
 );
 
 -- ==================== GOALS ====================
@@ -172,9 +174,13 @@ CREATE TABLE sleep_data (
   id                  UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id             UUID REFERENCES users(id) ON DELETE CASCADE,
   date                DATE NOT NULL,
+  total_min           INT,
   total_sleep_min     INT,
+  deep_min            INT,
   deep_sleep_min      INT,
+  rem_min             INT,
   rem_sleep_min       INT,
+  light_min           INT,
   light_sleep_min     INT,
   awake_min           INT,
   time_in_bed_min     INT,
@@ -183,6 +189,7 @@ CREATE TABLE sleep_data (
   wake_time           TIMESTAMPTZ,
   hrv_overnight       DECIMAL,
   resting_hr          INT,
+  score               INT,
   sleep_score         INT,
   source              TEXT DEFAULT 'apple_health',
   UNIQUE(user_id, date)
@@ -211,14 +218,16 @@ CREATE TABLE journal_entries (
 );
 
 CREATE TABLE journal_correlations (
-  id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id         UUID REFERENCES users(id) ON DELETE CASCADE,
-  factor          TEXT NOT NULL,
-  sleep_impact    DECIMAL,
-  recovery_impact DECIMAL,
-  sample_size     INT,
-  last_calculated TIMESTAMPTZ DEFAULT now(),
-  UNIQUE(user_id, factor)
+  id                UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id           UUID REFERENCES users(id) ON DELETE CASCADE,
+  factor            TEXT NOT NULL,
+  metric            TEXT NOT NULL DEFAULT 'recovery',
+  correlation_value DECIMAL,
+  sleep_impact      DECIMAL,
+  recovery_impact   DECIMAL,
+  sample_size       INT,
+  last_calculated   TIMESTAMPTZ DEFAULT now(),
+  UNIQUE(user_id, factor, metric)
 );
 
 -- ==================== ERNAEHRUNG ====================
@@ -230,11 +239,15 @@ CREATE TABLE nutrition_daily (
   target_carbs_g      INT,
   target_protein_g    INT,
   target_fat_g        INT,
+  total_calories      INT DEFAULT 0,
+  total_carbs         INT DEFAULT 0,
+  total_protein       INT DEFAULT 0,
+  total_fat           INT DEFAULT 0,
   logged_calories     INT DEFAULT 0,
   logged_carbs_g      INT DEFAULT 0,
   logged_protein_g    INT DEFAULT 0,
   logged_fat_g        INT DEFAULT 0,
-  water_liters        DECIMAL DEFAULT 0,
+  water_ml            INT DEFAULT 0,
   UNIQUE(user_id, date)
 );
 
@@ -308,7 +321,7 @@ CREATE TABLE notification_log (
   user_id         UUID REFERENCES users(id) ON DELETE CASCADE,
   type            TEXT NOT NULL,
   channel         TEXT DEFAULT 'telegram',
-  message         TEXT,
+  content         TEXT,
   sent_at         TIMESTAMPTZ DEFAULT now()
 );
 
